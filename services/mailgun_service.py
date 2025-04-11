@@ -40,11 +40,13 @@ def add_list_member(email, name=None, subscribed=True, upsert=True):
     }
     if name:
         data["name"] = name
+
+    print(data)
     # Mailgun expects form data, not JSON
-    # headers = {"Content-Type": "application/x-www-form-urlencoded"} # requests handles this with `data`
+    headers = {"Content-Type": "multipart/form-data"}
 
     try:
-        response = requests.post(url, auth=auth, data=data)
+        response = requests.post(url, headers=headers, auth=auth, data=data)
         response.raise_for_status()
         return response.json(), response.status_code # Usually 200 OK or 201 Created if upsert=false
     except requests.exceptions.RequestException as e:

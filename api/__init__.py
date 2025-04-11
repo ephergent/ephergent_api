@@ -14,7 +14,7 @@ api = Api(
     title='Ephergent API',
     version='1.0',
     description='API for managing Mailgun mailing list subscribers',
-    # doc='/docs' # Optional: path for Swagger UI documentation
+    doc='/docs' # Optional: path for Swagger UI documentation
 )
 
 # Add namespaces to the API
