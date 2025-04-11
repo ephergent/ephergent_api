@@ -1,0 +1,10 @@
+# Flask variables
+
+
+
+# Mailgun api key to send to mail list
+MAILGUN_API_KEY=YOUR_DOMAIN_MAILGUN_API_KEY
+MAILGUN_LIST_ADDRESS="maillist <no-reply@email.example.com>"
+MAILGUN_TEMPLATE="test template"
+
+
