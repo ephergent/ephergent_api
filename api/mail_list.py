@@ -22,18 +22,18 @@ message_model = api.model('Message', {
     'message': fields.String(required=True, description='A message describing the result')
 })
 
-# Parser for adding a subscriber (POST) - handles form data or JSON
+# Parser for adding a subscriber (POST) - handles form data, JSON, and query parameters
 subscriber_parser = reqparse.RequestParser()
-subscriber_parser.add_argument('address', type=str, required=True, help='Email address cannot be blank', location=('json', 'form'))
-subscriber_parser.add_argument('name', type=str, help='Optional subscriber name', required=False, location=('json', 'form'))
-subscriber_parser.add_argument('subscribed', type=bool, help='Subscription status (default: true)', default=True, location=('json', 'form'))
-subscriber_parser.add_argument('upsert', type=bool, help='Update if exists (default: true)', default=True, location=('json', 'form'))
+subscriber_parser.add_argument('address', type=str, required=True, help='Email address cannot be blank', location=('json', 'form', 'args'))
+subscriber_parser.add_argument('name', type=str, help='Optional subscriber name', required=False, location=('json', 'form', 'args'))
+subscriber_parser.add_argument('subscribed', type=bool, help='Subscription status (default: true)', default=True, location=('json', 'form', 'args'))
+subscriber_parser.add_argument('upsert', type=bool, help='Update if exists (default: true)', default=True, location=('json', 'form', 'args'))
 
 
-# Parser for updating a subscriber (PUT) - handles form data or JSON
+# Parser for updating a subscriber (PUT) - handles form data, JSON, and query parameters
 update_subscriber_parser = reqparse.RequestParser()
-update_subscriber_parser.add_argument('name', type=str, help='Optional subscriber name', required=False, location=('json', 'form'))
-update_subscriber_parser.add_argument('subscribed', type=bool, help='Subscription status', required=False, location=('json', 'form'))
+update_subscriber_parser.add_argument('name', type=str, help='Optional subscriber name', required=False, location=('json', 'form', 'args'))
+update_subscriber_parser.add_argument('subscribed', type=bool, help='Subscription status', required=False, location=('json', 'form', 'args'))
 
 
 @api.route('/')

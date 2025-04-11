@@ -22,6 +22,7 @@ def get_list_members():
     url = _get_list_members_url()
     auth = _get_mailgun_auth()
     try:
+        current_app.logger.info(f"Making GET request to Mailgun: {url}")
         response = requests.get(url, auth=auth)
         response.raise_for_status()  # Raise an exception for bad status codes
         return response.json(), 200
@@ -41,24 +42,37 @@ def add_list_member(email, name=None, subscribed=True, upsert=True):
     if name:
         data["name"] = name
 
-    print(data)
-    # Mailgun expects form data, not JSON
-    headers = {"Content-Type": "multipart/form-data"}
+    current_app.logger.info(f"Request data for Mailgun: {data}")
+    current_app.logger.info(f"Making POST request to Mailgun: {url}")
 
     try:
-        response = requests.post(url, headers=headers, auth=auth, data=data)
+        # Mailgun accepts regular form data, no special Content-Type needed
+        response = requests.post(url, auth=auth, data=data)
+
+        # Log the status and response
+        current_app.logger.info(f"Mailgun response status: {response.status_code}")
+        if response.text:
+            current_app.logger.info(f"Mailgun response: {response.text}")
+
         response.raise_for_status()
-        return response.json(), response.status_code # Usually 200 OK or 201 Created if upsert=false
+        return response.json(), response.status_code
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"Mailgun API error (add_list_member): {e}")
         error_message = f"Error adding member: {e}"
         status_code = getattr(e.response, 'status_code', 500)
-        try:
-            # Try to get more specific error from Mailgun response
-            error_details = e.response.json()
-            error_message = error_details.get('message', error_message)
-        except (AttributeError, ValueError, TypeError):
-            pass # Keep the original error message if parsing fails
+
+        # Log the full response for debugging
+        if hasattr(e, 'response') and e.response:
+            current_app.logger.error(f"Error response status: {e.response.status_code}")
+            current_app.logger.error(f"Error response text: {e.response.text}")
+
+            try:
+                # Try to get more specific error from Mailgun response
+                error_details = e.response.json()
+                error_message = error_details.get('message', error_message)
+            except (ValueError, TypeError):
+                pass  # Keep the original error message if parsing fails
+
         return {"message": error_message}, status_code
 
 
@@ -67,6 +81,7 @@ def get_member(member_address):
     url = _get_member_url(member_address)
     auth = _get_mailgun_auth()
     try:
+        current_app.logger.info(f"Making GET request to Mailgun: {url}")
         response = requests.get(url, auth=auth)
         response.raise_for_status()
         return response.json(), 200
@@ -91,10 +106,14 @@ def update_member(member_address, name=None, subscribed=None):
     if not data:
         return {"message": "No update data provided"}, 400
 
-    # headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    current_app.logger.info(f"Making PUT request to Mailgun: {url} with data: {data}")
 
     try:
         response = requests.put(url, auth=auth, data=data)
+        current_app.logger.info(f"Mailgun response status: {response.status_code}")
+        if response.text:
+            current_app.logger.info(f"Mailgun response: {response.text}")
+
         response.raise_for_status()
         return response.json(), 200
     except requests.exceptions.RequestException as e:
@@ -110,6 +129,7 @@ def delete_member(member_address):
     url = _get_member_url(member_address)
     auth = _get_mailgun_auth()
     try:
+        current_app.logger.info(f"Making DELETE request to Mailgun: {url}")
         response = requests.delete(url, auth=auth)
         response.raise_for_status()
         # Mailgun delete returns 200 OK on success
