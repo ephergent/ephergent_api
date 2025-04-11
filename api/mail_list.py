@@ -2,6 +2,7 @@ from flask import request
 from flask_restx import Namespace, Resource, fields, reqparse
 from services import mailgun_service
 import logging
+from auth.decorators import signature_required # Import the decorator
 
 # Setup logging
 log = logging.getLogger(__name__)
@@ -50,11 +51,16 @@ class SubscriberList(Resource):
         result, status_code = mailgun_service.get_list_members()
         return result, status_code
 
-    @api.doc('create_subscriber')
+    @api.doc('create_subscriber', security='apiKey', params={
+            'X-Timestamp': {'in': 'header', 'description': 'Request timestamp (Unix epoch seconds)', 'required': True},
+            'X-Signature': {'in': 'header', 'description': 'HMAC-SHA256 signature of (timestamp + "subscribe-add")', 'required': True}
+    })
     @api.expect(subscriber_parser)
     @api.response(200, 'Subscriber added or updated successfully', message_model)
     @api.response(400, 'Input validation error')
+    @api.response(401, 'Authentication Error (timestamp/signature invalid)')
     @api.response(500, 'Mailgun API Error')
+    @signature_required('subscribe-add') # Apply decorator with action identifier
     def post(self):
         """Create a new subscriber (or update if upsert=true)"""
         args = subscriber_parser.parse_args()
@@ -84,10 +90,15 @@ class Subscriber(Resource):
         result, status_code = mailgun_service.get_member(member_address)
         return result, status_code
 
-    @api.doc('update_subscriber')
+    @api.doc('update_subscriber', security='apiKey', params={
+            'X-Timestamp': {'in': 'header', 'description': 'Request timestamp (Unix epoch seconds)', 'required': True},
+            'X-Signature': {'in': 'header', 'description': 'HMAC-SHA256 signature of (timestamp + "subscribe-update")', 'required': True}
+    })
     @api.expect(update_subscriber_parser)
     @api.response(200, 'Subscriber updated successfully', message_model)
     @api.response(400, 'Input validation error or no data provided')
+    @api.response(401, 'Authentication Error (timestamp/signature invalid)')
+    @signature_required('subscribe-update') # Apply decorator with action identifier
     def put(self, member_address):
         """Update a subscriber"""
         args = update_subscriber_parser.parse_args()
@@ -104,8 +115,13 @@ class Subscriber(Resource):
         )
         return result, status_code
 
-    @api.doc('delete_subscriber')
+    @api.doc('delete_subscriber', security='apiKey', params={
+            'X-Timestamp': {'in': 'header', 'description': 'Request timestamp (Unix epoch seconds)', 'required': True},
+            'X-Signature': {'in': 'header', 'description': 'HMAC-SHA256 signature of (timestamp + "subscribe-delete")', 'required': True}
+    })
     @api.response(200, 'Subscriber deleted successfully', message_model) # Mailgun returns 200 on delete
+    @api.response(401, 'Authentication Error (timestamp/signature invalid)')
+    @signature_required('subscribe-delete') # Apply decorator with action identifier
     def delete(self, member_address):
         """Delete a subscriber"""
         log.info(f"Received request to delete subscriber: {member_address}")

@@ -1,7 +1,12 @@
 import os
 from flask import Flask, render_template, current_app
+import os
+import time
+import hmac
+import hashlib
+from flask import Flask, render_template, current_app
 from config import config_by_name
-from api import blueprint as api_blueprint
+from api import blueprint as api_blueprint # This now imports the blueprint from api/__init__.py
 import logging
 
 # Configure logging
@@ -27,8 +32,31 @@ def create_app(config_name=None):
 
     @app.route('/subscribe-example')
     def subscribe_example():
-        """Serves the example HTML form."""
-        return render_template('subscribe_form.html')
+        """Serves the example HTML form with pre-calculated signature data."""
+        # Generate timestamp and signature for the example form
+        # This mimics what Pelican would do during its build process
+        api_secret = current_app.config.get('API_SECRET')
+        action_identifier = 'subscribe-add' # Action for the form's POST request (/api/v1/mail/)
+        timestamp = str(int(time.time()))
+        signature = "ERROR_API_SECRET_NOT_SET" # Default in case secret is missing
+
+        if api_secret:
+            message = timestamp.encode('utf-8') + action_identifier.encode('utf-8')
+            try:
+                hash_obj = hmac.new(api_secret.encode('utf-8'), message, hashlib.sha256)
+                signature = hash_obj.hexdigest()
+                app.logger.debug(f"Generated signature for example form: {signature} (ts: {timestamp})")
+            except Exception as e:
+                app.logger.error(f"Error calculating HMAC for example form: {e}")
+                signature = "ERROR_CALCULATING_SIGNATURE"
+        else:
+             app.logger.warning("API_SECRET not found, cannot generate signature for example form.")
+
+        # Pass data to the template
+        return render_template('subscribe_form.html',
+                               api_timestamp=timestamp,
+                               api_signature=signature,
+                               api_action=action_identifier)
 
     # Log the configuration being used
     app.logger.info(f"App created with configuration: {config_name}")

@@ -10,4 +10,7 @@ MAILGUN_API_KEY=YOUR_MAILGUN_API_KEY
 MAILGUN_LIST_ADDRESS=YOUR_MAILGUN_LIST_ADDRESS # e.g., listname@yourdomain.com
 # MAILGUN_TEMPLATE="test template" # Not used in current implementation
 
+# API Security
+# Change this! Use `openssl rand -hex 32` to generate one
+API_SECRET=YOUR_HMAC_SECRET_KEY
 

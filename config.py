@@ -12,12 +12,17 @@ class Config:
     MAILGUN_API_KEY = os.environ.get('MAILGUN_API_KEY')
     MAILGUN_LIST_ADDRESS = os.environ.get('MAILGUN_LIST_ADDRESS')
     MAILGUN_API_BASE_URL = "https://api.mailgun.net/v3"
+    API_SECRET = os.environ.get('API_SECRET') # Load the API secret
 
     # Basic validation
     if not MAILGUN_API_KEY:
         raise ValueError("No MAILGUN_API_KEY set for Flask application")
     if not MAILGUN_LIST_ADDRESS:
         raise ValueError("No MAILGUN_LIST_ADDRESS set for Flask application")
+    # Add validation for API_SECRET, especially in production
+    # Consider adding:
+    # if not API_SECRET and os.getenv('FLASK_CONFIG') == 'prod':
+    #     raise ValueError("No API_SECRET set for Flask application in production")
 
 
 class DevelopmentConfig(Config):
