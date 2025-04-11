@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe to Mailing List</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        label { display: block; margin-bottom: 0.5em; }
+        input[type="email"], input[type="text"] {
+            width: 100%;
+            max-width: 300px;
+            padding: 0.5em;
+            margin-bottom: 1em;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 0.7em 1.5em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        #response { margin-top: 1em; padding: 1em; border: 1px solid transparent; }
+        .success { border-color: green; background-color: #e6ffe6; }
+        .error { border-color: red; background-color: #ffe6e6; }
+    </style>
+</head>
+<body>
+    <h1>Subscribe to Our Mailing List</h1>
+    <form id="subscribeForm" action="/api/v1/mail-list/subscribers/" method="POST">
+        <div>
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="address" required>
+        </div>
+        <div>
+            <label for="name">Name (Optional):</label>
+            <input type="text" id="name" name="name">
+        </div>
+        <button type="submit">Subscribe</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+        const form = document.getElementById('subscribeForm');
+        const responseDiv = document.getElementById('response');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent default form submission
+            responseDiv.textContent = ''; // Clear previous response
+            responseDiv.className = ''; // Clear previous styling
+
+            const formData = new FormData(form);
+            const actionUrl = form.action; // Get URL from form action attribute
+
+            try {
+                const response = await fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData // Send as form data
+                    // If API expected JSON:
+                    // headers: { 'Content-Type': 'application/json' },
+                    // body: JSON.stringify(Object.fromEntries(formData))
+                });
+
+                const result = await response.json(); // Always try to parse JSON
+
+                if (response.ok) {
+                    responseDiv.textContent = result.message || 'Subscription successful!';
+                    responseDiv.className = 'success';
+                    form.reset(); // Clear the form on success
+                } else {
+                    responseDiv.textContent = `Error: ${result.message || response.statusText}`;
+                    responseDiv.className = 'error';
+                }
+            } catch (error) {
+                console.error('Form submission error:', error);
+                responseDiv.textContent = 'An unexpected error occurred. Please try again.';
+                responseDiv.className = 'error';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,10 +1,13 @@
 # Flask variables
-
+FLASK_APP=app.py
+FLASK_CONFIG=dev # or 'prod', 'test'
+FLASK_DEBUG=1 # 1 for development, 0 for production
+SECRET_KEY=YOUR_VERY_SECRET_KEY # Change this! Use `openssl rand -hex 32` to generate one
 
 
 # Mailgun api key to send to mail list
-MAILGUN_API_KEY=YOUR_DOMAIN_MAILGUN_API_KEY
-MAILGUN_LIST_ADDRESS="maillist <no-reply@email.example.com>"
-MAILGUN_TEMPLATE="test template"
+MAILGUN_API_KEY=YOUR_MAILGUN_API_KEY
+MAILGUN_LIST_ADDRESS=YOUR_MAILGUN_LIST_ADDRESS # e.g., listname@yourdomain.com
+# MAILGUN_TEMPLATE="test template" # Not used in current implementation
 
 
