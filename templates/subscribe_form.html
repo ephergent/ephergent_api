@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscribe Form Example</title> <!-- Title already seems correct based on provided file -->
+    <title>Subscribe Form Example</title>
     <style>
         body { font-family: sans-serif; margin: 2em; }
         label { display: block; margin-bottom: 0.5em; }
@@ -39,6 +39,11 @@
             <label for="name">Name (Optional):</label>
             <input type="text" id="name" name="name">
         </div>
+        <!-- Hidden fields for signature details -->
+        <input type="hidden" id="apiTimestamp" value="{{ api_timestamp }}">
+        <input type="hidden" id="apiSignature" value="{{ api_signature }}">
+        <input type="hidden" id="apiAction" value="{{ api_action }}"> <!-- Optional: useful if action changes -->
+
         <button type="submit">Subscribe</button>
     </form>
 
@@ -47,37 +52,63 @@
     <script>
         const form = document.getElementById('subscribeForm');
         const responseDiv = document.getElementById('response');
+        // Get signature details from hidden fields
+        const apiTimestamp = document.getElementById('apiTimestamp').value;
+        const apiSignature = document.getElementById('apiSignature').value;
+        // const apiAction = document.getElementById('apiAction').value; // Read if needed
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault(); // Prevent default form submission
             responseDiv.textContent = ''; // Clear previous response
             responseDiv.className = ''; // Clear previous styling
 
+            // Check if signature details are present and valid (basic check)
+            if (!apiTimestamp || !apiSignature || apiSignature === "ERROR_API_SECRET_NOT_SET" || apiSignature === "ERROR_CALCULATING_SIGNATURE") {
+                responseDiv.textContent = 'Error: Form signature is missing or invalid. Cannot submit.';
+                responseDiv.className = 'error';
+                console.error("Missing or invalid signature details:", { timestamp: apiTimestamp, signature: apiSignature });
+                return; // Stop the submission
+            }
+
             const formData = new FormData(form);
             const actionUrl = form.action; // Get URL from form action attribute
+
+            // Create headers
+            const headers = new Headers();
+            headers.append('Accept', 'application/json'); // Explicitly request JSON response
+            headers.append('X-Timestamp', apiTimestamp);
+            headers.append('X-Signature', apiSignature);
 
             try {
                 const response = await fetch(actionUrl, {
                     method: 'POST',
+                    headers: headers, // Add the headers here
                     body: formData // Send as form data
-                    // If API expected JSON:
-                    // headers: { 'Content-Type': 'application/json' },
+                    // Note: Sending FormData automatically sets Content-Type to multipart/form-data
+                    // If API expected JSON body instead:
+                    // headers.append('Content-Type', 'application/json');
                     // body: JSON.stringify(Object.fromEntries(formData))
                 });
 
-                const result = await response.json(); // Always try to parse JSON
+                const result = await response.json(); // Expect JSON response now
 
                 if (response.ok) {
                     responseDiv.textContent = result.message || 'Subscription successful!';
                     responseDiv.className = 'success';
                     form.reset(); // Clear the form on success
                 } else {
-                    responseDiv.textContent = `Error: ${result.message || response.statusText}`;
+                    // Use message from JSON response if available, otherwise use status text
+                    responseDiv.textContent = `Error ${response.status}: ${result.message || response.statusText}`;
                     responseDiv.className = 'error';
                 }
             } catch (error) {
                 console.error('Form submission error:', error);
-                responseDiv.textContent = 'An unexpected error occurred. Please try again.';
+                // Check if the error is because response wasn't JSON
+                if (error instanceof SyntaxError) {
+                     responseDiv.textContent = 'An error occurred: Received an invalid response from the server (expected JSON).';
+                } else {
+                    responseDiv.textContent = 'An unexpected network error occurred. Please try again.';
+                }
                 responseDiv.className = 'error';
             }
         });
