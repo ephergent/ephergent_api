@@ -7,8 +7,8 @@ from auth.decorators import signature_required # Import the decorator
 # Setup logging
 log = logging.getLogger(__name__)
 
-# Define the namespace
-api = Namespace('subscribers', description='Mailgun mailing list subscriber operations')
+# Define the namespace - changed from 'subscribers' to '' since path is now in __init__.py
+api = Namespace('', description='Mailgun mailing list subscriber operations')
 
 # Define data models for request/response serialization and documentation
 subscriber_model = api.model('Subscriber', {
@@ -42,7 +42,6 @@ class SubscriberList(Resource):
     """Shows a list of all subscribers, and lets you POST to add new subscribers."""
 
     @api.doc('list_subscribers')
-    # @api.marshal_list_with(subscriber_model) # Mailgun returns a complex structure, maybe just return raw JSON
     @api.response(200, 'Success')
     @api.response(500, 'Mailgun API Error')
     def get(self):
@@ -65,13 +64,19 @@ class SubscriberList(Resource):
         """Create a new subscriber (or update if upsert=true)"""
         args = subscriber_parser.parse_args()
         log.info(f"Received request to add/update subscriber: {args['address']}")
-        result, status_code = mailgun_service.add_list_member(
-            email=args['address'],
-            name=args.get('name'), # Use get for optional args
-            subscribed=args['subscribed'],
-            upsert=args['upsert']
-        )
-        return result, status_code
+
+        # Add error handling here to ensure we always return proper JSON
+        try:
+            result, status_code = mailgun_service.add_list_member(
+                email=args['address'],
+                name=args.get('name'), # Use get for optional args
+                subscribed=args['subscribed'],
+                upsert=args['upsert']
+            )
+            return result, status_code
+        except Exception as e:
+            log.error(f"Error processing subscriber request: {e}")
+            return {"message": f"Server error: {str(e)}"}, 500
 
 
 @api.route('/<string:member_address>')
@@ -82,7 +87,6 @@ class Subscriber(Resource):
     """Show a single subscriber item and lets you update or delete them"""
 
     @api.doc('get_subscriber')
-    # @api.marshal_with(subscriber_model) # Mailgun returns a complex structure
     @api.response(200, 'Success')
     def get(self, member_address):
         """Fetch a specific subscriber"""
@@ -107,7 +111,7 @@ class Subscriber(Resource):
         update_data = {k: v for k, v in args.items() if v is not None}
 
         if not update_data:
-             api.abort(400, "No update data provided. Provide 'name' or 'subscribed'.")
+             return {"message": "No update data provided. Provide 'name' or 'subscribed'."}, 400
 
         result, status_code = mailgun_service.update_member(
             member_address=member_address,

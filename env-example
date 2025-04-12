@@ -14,3 +14,6 @@ MAILGUN_LIST_ADDRESS=YOUR_MAILGUN_LIST_ADDRESS # e.g., listname@yourdomain.com
 # Change this! Use `openssl rand -hex 32` to generate one
 API_SECRET=YOUR_HMAC_SECRET_KEY
 
+# For testing
+BASE_URL=http://127.0.0.1:5000/api/v1/mail/subscribers
+

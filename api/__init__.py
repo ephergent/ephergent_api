@@ -1,26 +1,5 @@
 from flask import Blueprint
 from flask_restx import Api
-
-# Import namespaces
-from .mail_list import api as mail_list_ns
-
-# Create Blueprint
-# It's common to prefix API routes, e.g., '/api/v1'
-blueprint = Blueprint('api', __name__, url_prefix='/api/v1')
-
-# Initialize API with Flask-RESTX
-api = Api(
-    blueprint,
-    title='Ephergent API',
-    version='1.0',
-    description='API for managing Mailgun mailing list subscribers',
-    doc='/docs' # Optional: path for Swagger UI documentation
-)
-
-# Add namespaces to the API
-api.add_namespace(mail_list_ns, path='/mail-list') # Route will be /api/v1/mail-list
-from flask import Blueprint
-from flask_restx import Api
 import logging
 
 # Import namespaces
@@ -42,7 +21,6 @@ authorizations = {
 }
 
 # Initialize API with blueprint, title, description, and security definitions
-# Note: The path in mail_list.py (@api.route('/')) is relative to the namespace path here.
 api = Api(
     blueprint,
     title='Ephergent API - Subscribers',
@@ -54,9 +32,7 @@ api = Api(
 )
 
 # Add namespaces to the API
-# The final endpoint will be blueprint_prefix + namespace_path + route_path
-# e.g., /api/v1 + /mail + / = /api/v1/mail/
-api.add_namespace(mail_list_ns, path='/mail')
-# Add other namespaces
+# Ensure this matches the path used in the HTML form
+api.add_namespace(mail_list_ns, path='/mail/subscribers')
 
 log.info("API Blueprint created with namespaces and security definitions.")

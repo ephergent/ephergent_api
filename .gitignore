@@ -1,4 +1,9 @@
-# ---> Python
+.idea/
+.aider*
+.env
+venv
+venv_linux
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

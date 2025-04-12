@@ -3,7 +3,7 @@ import time
 import hmac
 import hashlib
 from functools import wraps
-from flask import request, current_app, abort
+from flask import request, current_app, jsonify
 import logging
 
 log = logging.getLogger(__name__)
@@ -24,7 +24,8 @@ def signature_required(action_identifier):
             api_secret = current_app.config.get('API_SECRET')
             if not api_secret:
                 log.error("API_SECRET not configured on the server.")
-                abort(500, "Authentication configuration error.") # Internal Server Error
+                # Return JSON instead of abort
+                return jsonify({"message": "Authentication configuration error."}), 500
 
             # 2. Get Headers
             timestamp_str = request.headers.get('X-Timestamp')
@@ -32,19 +33,22 @@ def signature_required(action_identifier):
 
             if not timestamp_str or not received_signature:
                 log.warning("Auth headers missing.")
-                abort(401, "Missing required authentication headers (X-Timestamp, X-Signature).")
+                # Return JSON instead of abort
+                return jsonify({"message": "Missing required authentication headers (X-Timestamp, X-Signature)."}), 401
 
             # 3. Validate Timestamp
             try:
                 request_timestamp = int(timestamp_str)
             except ValueError:
                 log.warning(f"Invalid timestamp format received: {timestamp_str}")
-                abort(401, "Invalid timestamp format.")
+                # Return JSON instead of abort
+                return jsonify({"message": "Invalid timestamp format."}), 401
 
             current_timestamp = int(time.time())
             if abs(current_timestamp - request_timestamp) > TIMESTAMP_WINDOW:
                 log.warning(f"Timestamp expired. Request: {request_timestamp}, Server: {current_timestamp}")
-                abort(401, f"Timestamp expired or outside allowed window ({TIMESTAMP_WINDOW}s).")
+                # Return JSON instead of abort
+                return jsonify({"message": f"Timestamp expired or outside allowed window ({TIMESTAMP_WINDOW}s)."}), 401
 
             # 4. Construct Message & Calculate Expected Signature
             message = timestamp_str.encode('utf-8') + action_identifier.encode('utf-8')
@@ -53,12 +57,14 @@ def signature_required(action_identifier):
                 expected_signature = hash_obj.hexdigest()
             except Exception as e:
                 log.error(f"Error calculating HMAC: {e}")
-                abort(500, "Error during signature verification.")
+                # Return JSON instead of abort
+                return jsonify({"message": "Error during signature verification."}), 500
 
             # 5. Compare Signatures
             if not hmac.compare_digest(expected_signature, received_signature):
                 log.warning(f"Signature mismatch. Received: {received_signature}, Expected: {expected_signature}")
-                abort(401, "Invalid signature.")
+                # Return JSON instead of abort
+                return jsonify({"message": "Invalid signature."}), 401
 
             # 6. Proceed if valid
             log.debug(f"Signature verified successfully for action: {action_identifier}")

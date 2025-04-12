@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, current_app
+from flask import Flask, render_template, current_app, redirect, url_for # Added redirect, url_for
 import os
 import time
 import hmac
@@ -23,12 +23,11 @@ def create_app(config_name=None):
     # Register blueprints
     app.register_blueprint(api_blueprint)
 
-    # Add a simple route for the root and the example form
+    # Modify the root route to redirect to the example form
     @app.route('/')
     def index():
-        # Optionally, redirect to API docs or show a welcome message
-        # For now, let's serve the subscribe form example
-        return render_template('subscribe_form.html')
+        # Redirect to the subscribe_example route which includes signature generation
+        return redirect(url_for('subscribe_example')) # Changed this line
 
     @app.route('/subscribe-example')
     def subscribe_example():
@@ -36,7 +35,9 @@ def create_app(config_name=None):
         # Generate timestamp and signature for the example form
         # This mimics what Pelican would do during its build process
         api_secret = current_app.config.get('API_SECRET')
-        action_identifier = 'subscribe-add' # Action for the form's POST request (/api/v1/mail/)
+        # Ensure the action identifier matches the one used in the decorator for the POST endpoint
+        # In api/mail_list.py, the POST endpoint uses 'subscribe-add'
+        action_identifier = 'subscribe-add'
         timestamp = str(int(time.time()))
         signature = "ERROR_API_SECRET_NOT_SET" # Default in case secret is missing
 
@@ -45,7 +46,7 @@ def create_app(config_name=None):
             try:
                 hash_obj = hmac.new(api_secret.encode('utf-8'), message, hashlib.sha256)
                 signature = hash_obj.hexdigest()
-                app.logger.debug(f"Generated signature for example form: {signature} (ts: {timestamp})")
+                app.logger.debug(f"Generated signature for example form: {signature} (ts: {timestamp}, action: {action_identifier})")
             except Exception as e:
                 app.logger.error(f"Error calculating HMAC for example form: {e}")
                 signature = "ERROR_CALCULATING_SIGNATURE"
@@ -56,7 +57,7 @@ def create_app(config_name=None):
         return render_template('subscribe_form.html',
                                api_timestamp=timestamp,
                                api_signature=signature,
-                               api_action=action_identifier)
+                               api_action=action_identifier) # Pass action identifier too
 
     # Log the configuration being used
     app.logger.info(f"App created with configuration: {config_name}")
