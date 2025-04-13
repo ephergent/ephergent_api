@@ -50,16 +50,14 @@ class SubscriberList(Resource):
         result, status_code = mailgun_service.get_list_members()
         return result, status_code
 
-    @api.doc('create_subscriber', security='apiKey', params={
-            'X-Timestamp': {'in': 'header', 'description': 'Request timestamp (Unix epoch seconds)', 'required': True},
-            'X-Signature': {'in': 'header', 'description': 'HMAC-SHA256 signature of (timestamp + "subscribe-add")', 'required': True}
-    })
+    # Removed security requirement documentation and decorator for POST
+    @api.doc('create_subscriber')
     @api.expect(subscriber_parser)
     @api.response(200, 'Subscriber added or updated successfully', message_model)
     @api.response(400, 'Input validation error')
-    @api.response(401, 'Authentication Error (timestamp/signature invalid)')
+    # Removed 401 response as signature is no longer checked here
     @api.response(500, 'Mailgun API Error')
-    @signature_required('subscribe-add') # Apply decorator with action identifier
+    # REMOVED: @signature_required('subscribe-add') # Apply decorator with action identifier
     def post(self):
         """Create a new subscriber (or update if upsert=true)"""
         args = subscriber_parser.parse_args()
