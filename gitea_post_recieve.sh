@@ -17,10 +17,11 @@ fi
 
 # Define paths
 REPO_DIR="/srv/git/ephergent/ephergent_api.git" # Gitea's bare repo path
-WORKING_DIR="/srv/ephergent_api"              # Where the code will be checked out
+WORKING_DIR="/srv/ephergent_api"              # Where the code is checked out (MUST exist and be owned by user running script)
 VENV_DIR="$WORKING_DIR/venv"                  # Path to the virtual environment
 LOG_FILE="/home/git/ephergent_api_build.log"  # Log file for the hook script
 SERVICE_NAME="ephergent-api.service"          # Name of the systemd service
+GIT_BRANCH="main"                             # Or "master", or detect dynamically if needed
 
 # --- Logging Function ---
 log() {
@@ -36,28 +37,55 @@ chown git:git "$(dirname "$LOG_FILE")" || log "Warning: Could not chown log dire
 touch "$LOG_FILE"
 chown git:git "$LOG_FILE" || log "Warning: Could not chown log file."
 
-# Clean approach: Remove and recreate working directory each time
-log "Removing old working directory: $WORKING_DIR"
-rm -rf "$WORKING_DIR" >> "$LOG_FILE" 2>&1
-log "Creating new working directory: $WORKING_DIR"
-mkdir -p "$WORKING_DIR" >> "$LOG_FILE" 2>&1
-if [ $? -ne 0 ]; then
-    log "ERROR: Failed to create working directory $WORKING_DIR"
-    exit 1
+# --- Deployment Steps ---
+
+# Navigate to the working directory (should already exist and be owned by 'git')
+log "Changing to working directory: $WORKING_DIR"
+cd "$WORKING_DIR" || { log "ERROR: Failed to cd into $WORKING_DIR. Ensure it exists and the 'git' user has permissions."; exit 1; }
+
+# Check if this is a git repository. If not, clone into it.
+if [ ! -d ".git" ]; then
+    log "Working directory is not a git repository. Cloning..."
+    # Clone into the current directory (.)
+    # Clean out the directory first in case there are leftover files
+    rm -rf ./* ./.??* >> "$LOG_FILE" 2>&1 # Remove existing files/hidden files (be careful with this)
+    git clone --depth 1 --branch "$GIT_BRANCH" "$REPO_DIR" . >> "$LOG_FILE" 2>&1
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to clone repository into existing directory $WORKING_DIR"
+        exit 1
+    fi
+    log "Repository cloned successfully."
+else
+    log "Working directory is a git repository. Fetching and resetting..."
+    # Ensure remote is set correctly (usually 'origin')
+    git remote set-url origin "$REPO_DIR" >> "$LOG_FILE" 2>&1
+
+    # Fetch the latest changes from the bare repository
+    git fetch origin "$GIT_BRANCH" --depth 1 >> "$LOG_FILE" 2>&1
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to fetch from origin."
+        # Attempt to continue, maybe reset works
+    fi
+
+    # Reset the local repository to match the fetched branch HEAD
+    # This overwrites local changes and unstaged files
+    log "Resetting repository to origin/$GIT_BRANCH"
+    git reset --hard "origin/$GIT_BRANCH" >> "$LOG_FILE" 2>&1
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to reset repository."
+        exit 1
+    fi
+
+    # Clean untracked files and directories (-d for directories, -f for files, -x to ignore .gitignore rules)
+    # Use -f twice (-ff) if you really want to force cleaning even nested git repos (usually not needed/dangerous)
+    log "Cleaning untracked files and directories..."
+    git clean -fdx >> "$LOG_FILE" 2>&1
+    if [ $? -ne 0 ]; then
+        log "Warning: git clean command failed."
+    fi
+    log "Repository updated and cleaned."
 fi
 
-log "Cloning repository from $REPO_DIR to $WORKING_DIR"
-# Use --depth 1 for faster clones if history isn't needed for deployment
-git clone --depth 1 "$REPO_DIR" "$WORKING_DIR" >> "$LOG_FILE" 2>&1
-
-# Check if clone was successful by looking for a common file/dir
-if [ ! -f "$WORKING_DIR/app.py" ]; then
-    log "ERROR: Failed to clone repository into $WORKING_DIR"
-    exit 1
-fi
-log "Repository cloned successfully."
-
-cd "$WORKING_DIR" || { log "ERROR: Failed to cd into $WORKING_DIR"; exit 1; }
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "$VENV_DIR" ]; then
@@ -103,24 +131,41 @@ if [ $? -ne 0 ]; then
     log "ERROR: Failed to copy environment configuration."
     exit 1
 fi
-# Ensure the .env file has appropriate permissions (readable by the app user)
-# Adjust owner/group as necessary (e.g., www-data, or a dedicated app user like 'ephergent')
-# Example: chown ephergent:ephergent "$WORKING_DIR/.env"
-# Example: chmod 600 "$WORKING_DIR/.env" # Restrict permissions if needed
+
+# Set ownership and permissions for the application files
+# This ensures the user running the app (ephergent) can read/execute files
 log "Setting ownership and permissions for $WORKING_DIR"
 # Set ownership to the user/group defined in the systemd service file
-chown -R ephergent:ephergent "$WORKING_DIR" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set ownership for $WORKING_DIR"
+# Use -R for recursive operation
+sudo chown -R ephergent:ephergent "$WORKING_DIR" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set ownership for $WORKING_DIR"
 # Set appropriate permissions (adjust as needed for security)
-chmod -R 750 "$WORKING_DIR" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set permissions for $WORKING_DIR"
-chmod 640 "$WORKING_DIR/.env" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set permissions for .env file"
+# Example: Directories 750 (rwxr-x---), Files 640 (rw-r-----)
+# Find directories and set permissions
+sudo find "$WORKING_DIR" -type d -exec chmod 750 {} \; >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set directory permissions"
+# Find files and set permissions
+sudo find "$WORKING_DIR" -type f -exec chmod 640 {} \; >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set file permissions"
+# Ensure the .env file is readable by the app user but not others
+sudo chmod 640 "$WORKING_DIR/.env" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set permissions for .env file"
+# Ensure the gunicorn executable in venv is executable by the app user
+if [ -f "$VENV_DIR/bin/gunicorn" ]; then
+    sudo chmod u+x "$VENV_DIR/bin/gunicorn" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on gunicorn"
+fi
+# Ensure python in venv is executable
+if [ -f "$VENV_DIR/bin/python" ]; then
+    sudo chmod u+x "$VENV_DIR/bin/python" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on python"
+fi
+# Ensure activate script is executable if needed (though usually sourced, not executed directly by app)
+if [ -f "$VENV_DIR/bin/activate" ]; then
+    sudo chmod u+x "$VENV_DIR/bin/activate" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on activate script"
+fi
 
 
 # Restart the application service using systemd
 # IMPORTANT: The user running this script (e.g., 'git') needs passwordless sudo rights
-#            for 'systemctl restart $SERVICE_NAME'.
+#            for 'systemctl restart $SERVICE_NAME' AND for the chown/chmod commands above.
 #            Configure this via 'sudo visudo' or a file in /etc/sudoers.d/
 #            Example entry in sudoers:
-#            git ALL=(ALL) NOPASSWD: /bin/systemctl restart ephergent-api.service
+#            git ALL=(ALL) NOPASSWD: /bin/systemctl restart ephergent-api.service, /bin/chown, /bin/chmod, /usr/bin/find
 log "Attempting to restart the application service: $SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME" >> "$LOG_FILE" 2>&1
 if [ $? -ne 0 ]; then
