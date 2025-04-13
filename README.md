@@ -1,4 +1,4 @@
-# Ephergent API 
+# Ephergent API v
 
 API for managing Mailgun mailing list subscribers for the Ephergent blog.
 
