@@ -137,27 +137,27 @@ fi
 log "Setting ownership and permissions for $WORKING_DIR"
 # Set ownership to the user/group defined in the systemd service file
 # Use -R for recursive operation
-sudo chown -R ephergent:ephergent "$WORKING_DIR" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set ownership for $WORKING_DIR"
+#sudo chown -R ephergent:ephergent "$WORKING_DIR" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set ownership for $WORKING_DIR"
 # Set appropriate permissions (adjust as needed for security)
 # Example: Directories 750 (rwxr-x---), Files 640 (rw-r-----)
 # Find directories and set permissions
-sudo find "$WORKING_DIR" -type d -exec chmod 750 {} \; >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set directory permissions"
+#sudo find "$WORKING_DIR" -type d -exec chmod 750 {} \; >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set directory permissions"
 # Find files and set permissions
-sudo find "$WORKING_DIR" -type f -exec chmod 640 {} \; >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set file permissions"
+#sudo find "$WORKING_DIR" -type f -exec chmod 640 {} \; >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set file permissions"
 # Ensure the .env file is readable by the app user but not others
-sudo chmod 640 "$WORKING_DIR/.env" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set permissions for .env file"
+#sudo chmod 640 "$WORKING_DIR/.env" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set permissions for .env file"
 # Ensure the gunicorn executable in venv is executable by the app user
-if [ -f "$VENV_DIR/bin/gunicorn" ]; then
-    sudo chmod u+x "$VENV_DIR/bin/gunicorn" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on gunicorn"
-fi
+#if [ -f "$VENV_DIR/bin/gunicorn" ]; then
+#    sudo chmod u+x "$VENV_DIR/bin/gunicorn" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on gunicorn"
+#fi
 # Ensure python in venv is executable
-if [ -f "$VENV_DIR/bin/python" ]; then
-    sudo chmod u+x "$VENV_DIR/bin/python" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on python"
-fi
+#if [ -f "$VENV_DIR/bin/python" ]; then
+#    sudo chmod u+x "$VENV_DIR/bin/python" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on python"
+#fi
 # Ensure activate script is executable if needed (though usually sourced, not executed directly by app)
-if [ -f "$VENV_DIR/bin/activate" ]; then
-    sudo chmod u+x "$VENV_DIR/bin/activate" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on activate script"
-fi
+#if [ -f "$VENV_DIR/bin/activate" ]; then
+#    sudo chmod u+x "$VENV_DIR/bin/activate" >> "$LOG_FILE" 2>&1 || log "Warning: Failed to set execute permission on activate script"
+#fi
 
 
 # Restart the application service using systemd
