@@ -20,10 +20,8 @@ fi
 
 # Deploy code
 if [ ! -d "$WORKING_DIR/.git" ]; then
-    # First-time deployment
     git clone --depth 1 --branch "$GIT_BRANCH" "$REPO_DIR" "$WORKING_DIR"
 else
-    # Update existing deployment
     cd "$WORKING_DIR"
     git fetch origin "$GIT_BRANCH"
     git reset --hard "origin/$GIT_BRANCH"
@@ -45,11 +43,15 @@ deactivate
 # Set up environment file
 cp "$ENV_CONFIG_FILE" "$WORKING_DIR/.env"
 
-# Restart service (if git has permission to use systemctl)
-if command -v systemctl &> /dev/null && systemctl list-units --type=service | grep -q "ephergent-api"; then
-    systemctl restart ephergent-api.service || echo "Could not restart service - manual restart required"
-else
-    echo "Service needs to be restarted manually"
+# Fix permissions - critical step
+sudo chown -R ephergent:ephergent "$WORKING_DIR"
+sudo find "$WORKING_DIR" -type d -exec chmod 750 {} \;
+sudo find "$WORKING_DIR" -type f -exec chmod 640 {} \;
+sudo find "$VENV_DIR/bin" -type f -exec chmod 750 {} \;
+
+# Restart service
+if command -v systemctl &> /dev/null; then
+    sudo systemctl restart ephergent-api.service
 fi
 
 echo "Deployment completed"
