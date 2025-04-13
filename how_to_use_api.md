@@ -9,7 +9,7 @@ This guide walks you through interacting with the local Mail API.
 No authentication required.
 
 ```bash
-curl -X GET "http://127.0.0.1:5000/api/v1/mail/subscribers/"
+curl -X GET "https://api.ephergent.com//api/v1/mail/subscribers/"
 ```
 
 ---
@@ -40,7 +40,7 @@ SIGNATURE=$(echo -n "${TIMESTAMP}${ACTION}" | openssl dgst -sha256 -hmac "${API_
 ### 4. Make the API Call
 
 ```bash
-curl -X POST "http://127.0.0.1:5000/api/v1/mail/subscribers/" \
+curl -X POST "https://api.ephergent.com//api/v1/mail/subscribers/" \
     -H "X-Timestamp: ${TIMESTAMP}" \
     -H "X-Signature: ${SIGNATURE}" \
     -H "Content-Type: application/x-www-form-urlencoded" \
@@ -54,7 +54,7 @@ curl -X POST "http://127.0.0.1:5000/api/v1/mail/subscribers/" \
 No authentication required.
 
 ```bash
-curl -X GET "http://127.0.0.1:5000/api/v1/mail/subscribers/beforegr8ness@gmail.com"
+curl -X GET "https://api.ephergent.com//api/v1/mail/subscribers/beforegr8ness@gmail.com"
 ```
 
 ---
@@ -83,7 +83,7 @@ SIGNATURE=$(echo -n "${TIMESTAMP}${ACTION}" | openssl dgst -sha256 -hmac "${API_
 ### 4. Make the API Call
 
 ```bash
-curl -X PUT "http://127.0.0.1:5000/api/v1/mail/subscribers/beforegr8ness@gmail.com" \
+curl -X PUT "https://api.ephergent.com//api/v1/mail/subscribers/beforegr8ness@gmail.com" \
     -H "X-Timestamp: ${TIMESTAMP}" \
     -H "X-Signature: ${SIGNATURE}" \
     -H "Content-Type: application/x-www-form-urlencoded" \
@@ -116,7 +116,7 @@ SIGNATURE=$(echo -n "${TIMESTAMP}${ACTION}" | openssl dgst -sha256 -hmac "${API_
 ### 4. Make the API Call
 
 ```bash
-curl -X DELETE "http://127.0.0.1:5000/api/v1/mail/subscribers/beforegr8ness@gmail.com" \
+curl -X DELETE "https://api.ephergent.com//api/v1/mail/subscribers/beforegr8ness@gmail.com" \
     -H "X-Timestamp: ${TIMESTAMP}" \
     -H "X-Signature: ${SIGNATURE}"
 ```
