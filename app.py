@@ -5,6 +5,7 @@ import time
 import hmac
 import hashlib
 from flask import Flask, render_template, current_app
+from flask_cors import CORS
 from config import config_by_name
 from api import blueprint as api_blueprint # This now imports the blueprint from api/__init__.py
 import logging
@@ -18,6 +19,7 @@ def create_app(config_name=None):
         config_name = os.getenv('FLASK_CONFIG', 'dev') # Default to 'dev' if not set
 
     app = Flask(__name__)
+    CORS(app, resources={r"/api/*": {"origins": "https://ephergent.com"}})
     app.config.from_object(config_by_name[config_name])
 
     # Register blueprints
