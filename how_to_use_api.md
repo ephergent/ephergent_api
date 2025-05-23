@@ -41,8 +41,6 @@ SIGNATURE=$(echo -n "${TIMESTAMP}${ACTION}" | openssl dgst -sha256 -hmac "${API_
 
 ```bash
 curl -X POST "https://api.ephergent.com//api/v1/mail/subscribers/" \
-    -H "X-Timestamp: ${TIMESTAMP}" \
-    -H "X-Signature: ${SIGNATURE}" \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "address=beforegr8ness@gmail.com"
 ```
@@ -116,7 +114,8 @@ SIGNATURE=$(echo -n "${TIMESTAMP}${ACTION}" | openssl dgst -sha256 -hmac "${API_
 ### 4. Make the API Call
 
 ```bash
-curl -X DELETE "https://api.ephergent.com//api/v1/mail/subscribers/beforegr8ness@gmail.com" \
+curl -X DELETE "https://api.ephergent.com//api/v1/mail/subscribers/jeremy.schroeder@proton.me" \
     -H "X-Timestamp: ${TIMESTAMP}" \
     -H "X-Signature: ${SIGNATURE}"
 ```
+jeremy.schroeder@proton.me

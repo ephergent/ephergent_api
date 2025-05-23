@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+# Remember to delete /srv/ephergent_api before pushing...
+
 # Configuration
 ENV_CONFIG_FILE="/etc/ephergent/build.env"
 REPO_DIR="/srv/git/ephergent/ephergent_api.git"
